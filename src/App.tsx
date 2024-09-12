@@ -39,7 +39,7 @@ function App() {
     // Create pyramid of boxes
     const pyramidRows = 10;
     const boxSize = 60; // Reduced box size for better visibility
-    const pyramidX = window.innerWidth / 2;
+    const pyramidX = (window.innerWidth * 3) / 4; // Move pyramid to the right
     const pyramidHeight = pyramidRows * boxSize;
     const pyramidY = (window.innerHeight - pyramidHeight) / 2; // Center the entire pyramid
 
