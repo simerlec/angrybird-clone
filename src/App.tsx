@@ -15,6 +15,10 @@ import {
 } from "matter-js";
 import "./App.css";
 
+// Update these import statements
+const blockImage = "/block.png";
+const birdImage = "/bird.png";
+
 function App() {
   const sceneRef = useRef<HTMLDivElement>(null);
 
@@ -77,7 +81,11 @@ function App() {
       {
         restitution: 0.8, // Make the ball bouncy
         render: {
-          fillStyle: "#FF0000", // Red color for the ball
+          sprite: {
+            texture: birdImage,
+            xScale: (ballRadius * 2 + 10) / 128, // Slightly increased scale
+            yScale: (ballRadius * 2 + 8) / 128, // Slightly increased scale
+          },
         },
         collisionFilter: {
           group: -1, // Same negative group as the tower
@@ -155,13 +163,14 @@ function App() {
     for (let row = 0; row < pyramidRows; row++) {
       for (let col = 0; col <= row; col++) {
         const x = pyramidX + (col - row / 2) * boxSize;
-        const y = pyramidY + row * boxSize; // Corrected this line
+        const y = pyramidY + row * boxSize;
         const box = Bodies.rectangle(x, y, boxSize, boxSize, {
-          // Remove isStatic property to make boxes dynamic
           render: {
-            fillStyle: `rgb(${Math.random() * 255},${Math.random() * 255},${
-              Math.random() * 255
-            })`,
+            sprite: {
+              texture: blockImage,
+              xScale: (boxSize + 10) / 128, // Slightly increased scale
+              yScale: (boxSize + 10) / 128, // Slightly increased scale
+            },
           },
         });
         Composite.add(world, box);
