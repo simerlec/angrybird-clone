@@ -1,10 +1,16 @@
-body,
-#root {
+body {
   margin: 0;
   padding: 0;
+  background-image: url("/bg.svg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100vh;
+}
+
+.game-container {
   width: 100vw;
   height: 100vh;
-  overflow: hidden;
 }
 
 .logo {

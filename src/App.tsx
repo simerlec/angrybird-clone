@@ -37,7 +37,7 @@ function App() {
         width: window.innerWidth,
         height: window.innerHeight,
         wireframes: false,
-        background: "#f0f0f0",
+        background: "transparent", // Change this to transparent
       },
     });
 
@@ -195,7 +195,7 @@ function App() {
     };
   }, []);
 
-  return <div ref={sceneRef} style={{ width: "100vw", height: "100vh" }} />;
+  return <div ref={sceneRef} className="game-container" />;
 }
 
 export default App;
