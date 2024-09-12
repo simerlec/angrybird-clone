@@ -18,6 +18,7 @@ import "./App.css";
 // Update these import statements
 const blockImage = "/block.png";
 const birdImage = "/bird.png";
+const slingshotImage = "/sling.png";
 
 function App() {
   const sceneRef = useRef<HTMLDivElement>(null);
@@ -47,36 +48,52 @@ function App() {
     // Create ground
     const ground = Bodies.rectangle(
       window.innerWidth / 2,
-      window.innerHeight,
+      window.innerHeight - 250,
       window.innerWidth,
       50,
-      { isStatic: true }
+      {
+        isStatic: true,
+        render: {
+          fillStyle: "transparent", // Make the ground transparent
+          strokeStyle: "transparent", // Also make the outline transparent
+        },
+      }
     );
 
-    // Create vertical tower on the left
-    const towerWidth = 40;
-    const towerHeight = window.innerHeight * 0.3; // Increased tower height
-    const towerX = window.innerWidth / 4;
-    const towerY = window.innerHeight - towerHeight / 2 - 25; // Adjust for ground height
+    // Remove the tower creation code and replace it with the slingshot image
+    const slingshotWidth = 100; // Adjust this value based on your image
+    const slingshotHeight = 150; // Adjust this value based on your image
+    const slingshotX = window.innerWidth / 4;
+    const slingshotY = window.innerHeight - slingshotHeight / 2 - 225 - 80; // Moved up by 50 pixels
 
-    const tower = Bodies.rectangle(towerX, towerY, towerWidth, towerHeight, {
-      isStatic: true,
-      render: {
-        fillStyle: "#8B4513", // Brown color for the tower
-      },
-      collisionFilter: {
-        group: -1, // Negative group for the tower
-      },
-    });
+    const slingshot = Bodies.rectangle(
+      slingshotX,
+      slingshotY,
+      slingshotWidth,
+      slingshotHeight,
+      {
+        isStatic: true,
+        render: {
+          sprite: {
+            texture: slingshotImage,
+            xScale: slingshotWidth / 128, // Adjust scale as needed
+            yScale: slingshotHeight / 128, // Adjust scale as needed
+          },
+        },
+        collisionFilter: {
+          group: -1, // Negative group for the slingshot
+        },
+      }
+    );
 
-    // Add tower to the world
-    Composite.add(world, tower);
+    // Add slingshot to the world
+    Composite.add(world, slingshot);
 
-    // Create ball on top of the tower
+    // Update the ball position
     const ballRadius = 50;
     const ball = Bodies.circle(
-      towerX,
-      towerY - towerHeight / 2 - ballRadius - 10, // Added extra space
+      slingshotX,
+      slingshotY - slingshotHeight / 2 + ballRadius - 100, // Moved up by 100 pixels
       ballRadius,
       {
         restitution: 0.8, // Make the ball bouncy
@@ -93,11 +110,11 @@ function App() {
       }
     );
 
-    // Create a fixed point for the slingshot constraint
+    // Update the fixed point for the slingshot constraint
     const fixedPoint = {
-      x: towerX,
-      y: towerY - towerHeight / 2 - ballRadius - 10,
-    }; // Adjusted fixed point
+      x: slingshotX,
+      y: slingshotY - slingshotHeight / 2 + ballRadius - 90, // Moved up by 100 pixels
+    };
 
     // Create the slingshot constraint
     const slingshotConstraint = Constraint.create({
@@ -158,7 +175,7 @@ function App() {
     const boxSize = 60; // Reduced box size for better visibility
     const pyramidX = (window.innerWidth * 3) / 4; // Move pyramid to the right
     const pyramidHeight = pyramidRows * boxSize;
-    const pyramidY = (window.innerHeight - pyramidHeight) / 2; // Center the entire pyramid
+    const pyramidY = window.innerHeight - pyramidHeight - 225; // Adjusted for new ground height
 
     for (let row = 0; row < pyramidRows; row++) {
       for (let col = 0; col <= row; col++) {
