@@ -1,5 +1,14 @@
 import { useEffect, useRef } from "react";
-import { Engine, Render, Runner, World, Bodies, Composite } from "matter-js";
+import {
+  Engine,
+  Render,
+  Runner,
+  World,
+  Bodies,
+  Composite,
+  Mouse,
+  MouseConstraint,
+} from "matter-js";
 import "./App.css";
 
 function App() {
@@ -35,6 +44,57 @@ function App() {
       50,
       { isStatic: true }
     );
+
+    // Create vertical tower on the left
+    const towerWidth = 40;
+    const towerHeight = window.innerHeight * 0.2;
+    const towerX = window.innerWidth / 4;
+    const towerY = window.innerHeight - towerHeight / 2 - 25; // Adjust for ground height
+
+    const tower = Bodies.rectangle(towerX, towerY, towerWidth, towerHeight, {
+      isStatic: true,
+      render: {
+        fillStyle: "#8B4513", // Brown color for the tower
+      },
+    });
+
+    // Add tower to the world
+    Composite.add(world, tower);
+
+    // Create ball on top of the tower
+    const ballRadius = 50;
+    const ball = Bodies.circle(
+      towerX,
+      towerY - towerHeight / 2 - ballRadius,
+      ballRadius,
+      {
+        restitution: 0.8, // Make the ball bouncy
+        render: {
+          fillStyle: "#FF0000", // Red color for the ball
+        },
+      }
+    );
+
+    // Add ball to the world
+    Composite.add(world, ball);
+
+    // Add mouse control
+    const mouse = Mouse.create(render.canvas);
+    const mouseConstraint = MouseConstraint.create(engine, {
+      mouse: mouse,
+      constraint: {
+        stiffness: 0.2,
+        render: {
+          visible: false,
+        },
+      },
+    });
+
+    // Add mouseConstraint to the world
+    Composite.add(world, mouseConstraint);
+
+    // Sync the mouse with the renderer
+    render.mouse = mouse;
 
     // Create pyramid of boxes
     const pyramidRows = 10;
@@ -73,6 +133,7 @@ function App() {
       World.clear(world, false);
       Engine.clear(engine);
       render.canvas.remove();
+      Mouse.clearSourceEvents(mouse);
     };
   }, []);
 
