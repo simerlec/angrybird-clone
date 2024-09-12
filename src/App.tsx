@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Engine, Render, World, Bodies, Composite } from "matter-js";
+import { Engine, Render, Runner, World, Bodies, Composite } from "matter-js";
 import "./App.css";
 
 function App() {
@@ -23,6 +23,9 @@ function App() {
         background: "#f0f0f0",
       },
     });
+
+    // Create runner
+    const runner = Runner.create();
 
     // Create ground
     const ground = Bodies.rectangle(
@@ -59,13 +62,14 @@ function App() {
     // Add ground to the world
     Composite.add(world, ground);
 
-    // Run the engine and renderer
-    Engine.run(engine);
+    // Run the engine, renderer, and runner
     Render.run(render);
+    Runner.run(runner, engine);
 
     // Cleanup on component unmount
     return () => {
       Render.stop(render);
+      Runner.stop(runner);
       World.clear(world, false);
       Engine.clear(engine);
       render.canvas.remove();
