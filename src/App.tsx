@@ -8,6 +8,7 @@ import {
   Composite,
   Mouse,
   MouseConstraint,
+  Constraint,
 } from "matter-js";
 import "./App.css";
 
@@ -47,7 +48,7 @@ function App() {
 
     // Create vertical tower on the left
     const towerWidth = 40;
-    const towerHeight = window.innerHeight * 0.2;
+    const towerHeight = window.innerHeight * 0.3; // Increased tower height
     const towerX = window.innerWidth / 4;
     const towerY = window.innerHeight - towerHeight / 2 - 25; // Adjust for ground height
 
@@ -55,6 +56,9 @@ function App() {
       isStatic: true,
       render: {
         fillStyle: "#8B4513", // Brown color for the tower
+      },
+      collisionFilter: {
+        group: -1, // Negative group for the tower
       },
     });
 
@@ -65,18 +69,40 @@ function App() {
     const ballRadius = 50;
     const ball = Bodies.circle(
       towerX,
-      towerY - towerHeight / 2 - ballRadius,
+      towerY - towerHeight / 2 - ballRadius - 10, // Added extra space
       ballRadius,
       {
         restitution: 0.8, // Make the ball bouncy
         render: {
           fillStyle: "#FF0000", // Red color for the ball
         },
+        collisionFilter: {
+          group: -1, // Same negative group as the tower
+        },
       }
     );
 
-    // Add ball to the world
-    Composite.add(world, ball);
+    // Create a fixed point for the slingshot constraint
+    const fixedPoint = {
+      x: towerX,
+      y: towerY - towerHeight / 2 - ballRadius - 10,
+    }; // Adjusted fixed point
+
+    // Create the slingshot constraint
+    const slingshotConstraint = Constraint.create({
+      pointA: fixedPoint,
+      bodyB: ball,
+      stiffness: 0.01,
+      damping: 0.1,
+      render: {
+        visible: true,
+        lineWidth: 2,
+        strokeStyle: "#FFA500",
+      },
+    });
+
+    // Add ball and constraint to the world
+    Composite.add(world, [ball, slingshotConstraint]);
 
     // Add mouse control
     const mouse = Mouse.create(render.canvas);
