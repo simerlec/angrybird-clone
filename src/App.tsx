@@ -35,15 +35,23 @@ function App() {
 
     // Create pyramid of boxes
     const pyramidRows = 10;
-    const boxSize = 100;
+    const boxSize = 60; // Reduced box size for better visibility
     const pyramidX = window.innerWidth / 2;
-    const pyramidY = window.innerHeight - 25 - (boxSize * pyramidRows) / 2;
+    const pyramidHeight = pyramidRows * boxSize;
+    const pyramidY = (window.innerHeight - pyramidHeight) / 2; // Center the entire pyramid
 
     for (let row = 0; row < pyramidRows; row++) {
       for (let col = 0; col <= row; col++) {
         const x = pyramidX + (col - row / 2) * boxSize;
-        const y = pyramidY + row * boxSize;
-        const box = Bodies.rectangle(x, y, boxSize, boxSize);
+        const y = pyramidY + row * boxSize; // Corrected this line
+        const box = Bodies.rectangle(x, y, boxSize, boxSize, {
+          // Remove isStatic property to make boxes dynamic
+          render: {
+            fillStyle: `rgb(${Math.random() * 255},${Math.random() * 255},${
+              Math.random() * 255
+            })`,
+          },
+        });
         Composite.add(world, box);
       }
     }
