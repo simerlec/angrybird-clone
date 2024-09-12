@@ -9,6 +9,9 @@ import {
   Mouse,
   MouseConstraint,
   Constraint,
+  Vector,
+  Events,
+  Body,
 } from "matter-js";
 import "./App.css";
 
@@ -115,6 +118,26 @@ function App() {
         },
       },
     });
+
+    // Add event listener for mouse release
+    Events.on(
+      mouseConstraint,
+      "enddrag",
+      (event: Matter.IEvent<Matter.MouseConstraint>) => {
+        const mouseEvent = event as unknown as { body: Matter.Body };
+        if (mouseEvent.body === ball) {
+          // Remove the constraint
+          Composite.remove(world, slingshotConstraint);
+
+          // Calculate the force to apply
+          const force = Vector.sub(fixedPoint, ball.position);
+          const powerFactor = 0.004; // Adjust this value to change the launch power
+
+          // Apply the force to the ball
+          Body.applyForce(ball, ball.position, Vector.mult(force, powerFactor));
+        }
+      }
+    );
 
     // Add mouseConstraint to the world
     Composite.add(world, mouseConstraint);
