@@ -8,7 +8,7 @@ function App() {
     <GameEngine>
       {(world, mouseConstraint, engine) => (
         <>
-          <Slingshot world={world} mouseConstraint={mouseConstraint} />
+          <Slingshot world={world} mouseConstraint={mouseConstraint} engine={engine} />
           <Tower world={world} engine={engine} />
         </>
       )}
