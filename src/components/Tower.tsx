@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import { Bodies, Composite, Events } from "matter-js";
+import { useEffect, useRef } from "react";
+import { Bodies, Composite, Events, Vector } from "matter-js";
 
 const blockImage = "/block.png";
 
 interface TowerProps {
   world: Matter.World;
   engine: Matter.Engine;
+  pigCount: number;
+  setPigCount: (count: number | ((prev: number) => number)) => void;
 }
 
 interface CollisionEvent {
@@ -15,10 +17,9 @@ interface CollisionEvent {
   }>;
 }
 
-export function Tower({ world, engine }: TowerProps) {
+export function Tower({ world, engine, pigCount, setPigCount }: TowerProps) {
   const towerRefs = useRef<Matter.Body[]>([]);
   const pigRefs = useRef<Matter.Body[]>([]);
-  const [pigCount, setPigCount] = useState(0);
 
   useEffect(() => {
     console.log(`Pig count changed: ${pigCount}`);
@@ -94,14 +95,16 @@ export function Tower({ world, engine }: TowerProps) {
             Math.pow(pig.velocity.y, 2)
           );
 
-          console.log(speed)
+          // Calculate impact force using relative velocity
+          const relativeVelocity = Vector.sub(pig.velocity, other.velocity);
+          const impactForce = Vector.magnitude(relativeVelocity);
 
-          // If pig hits something at high speed or is hit by the bird, remove it
-          if (speed > 5 || other.collisionFilter.group === -1) {
+          // If pig hits something at high speed or is hit hard enough, remove it
+          if (speed > 5 || impactForce > 5 || other.collisionFilter.group === -1) {
             console.log(`Pig destroyed! Remaining pigs: ${pigRefs.current.length - 1}`);
             Composite.remove(world, pig);
             pigRefs.current = pigRefs.current.filter(p => p.id !== pig.id);
-            setPigCount(prev => prev - 1);
+            setPigCount((prev: number) => prev - 1);
           }
         }
       });
@@ -122,7 +125,7 @@ export function Tower({ world, engine }: TowerProps) {
           console.log(`Pig left viewport! Remaining pigs: ${pigRefs.current.length - 1}`);
           Composite.remove(world, pig);
           pigRefs.current = pigRefs.current.filter(p => p.id !== pig.id);
-          setPigCount(prev => prev - 1);
+          setPigCount((prev: number) => prev - 1);
         }
       });
     };
