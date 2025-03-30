@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bodies, Composite, Events } from "matter-js";
 
 const blockImage = "/block.png";
@@ -17,12 +17,18 @@ interface CollisionEvent {
 
 export function Tower({ world, engine }: TowerProps) {
   const towerRefs = useRef<Matter.Body[]>([]);
-  const pigRef = useRef<Matter.Body | null>(null);
+  const pigRefs = useRef<Matter.Body[]>([]);
+  const [pigCount, setPigCount] = useState(0);
+
+  useEffect(() => {
+    console.log(`Pig count changed: ${pigCount}`);
+  }, [pigCount]);
 
   useEffect(() => {
     // Clean up previous tower
     towerRefs.current.forEach(body => Composite.remove(world, body));
     towerRefs.current = [];
+    pigRefs.current = [];
 
     // Create simple tower of boxes
     const towerRows = 8;
@@ -31,7 +37,7 @@ export function Tower({ world, engine }: TowerProps) {
     const towerY = window.innerHeight - (towerRows * boxSize) - 225;
 
     for (let row = 0; row < towerRows; row++) {
-      const x = towerX;
+      const x = row === towerRows-1 ? towerX - 10 : towerX ;
       const y = towerY + row * boxSize;
       const box = Bodies.rectangle(x, y, boxSize, boxSize, {
         render: {
@@ -46,29 +52,38 @@ export function Tower({ world, engine }: TowerProps) {
       towerRefs.current.push(box);
     }
 
-    // Add green ball at the top of the tower
-    const greenBall = Bodies.circle(
-      towerX,
-      towerY - 30, // Place it slightly above the top box
-      30,
-      {
+    // Add two green balls at the top of the tower
+    // const pigPositions = [
+    //   { x: towerX - 40, y: towerY - 30 },
+    //   { x: towerX + 40, y: towerY - 30 }
+    // ];
+    const pigPositions = [
+      { x: window.innerWidth - 550, y: window.innerHeight - 250 },
+      { x: window.innerWidth - 400, y: window.innerHeight - 250 }
+    ];
+
+    pigPositions.forEach(({ x, y }) => {
+      const greenBall = Bodies.circle(x, y, 30, {
         render: {
           fillStyle: "#4CAF50",
         },
-        label: 'pig', // Add label for collision detection
-      }
-    );
-    Composite.add(world, greenBall);
-    towerRefs.current.push(greenBall);
-    pigRef.current = greenBall;
+        label: 'pig',
+      });
+      Composite.add(world, greenBall);
+      towerRefs.current.push(greenBall);
+      pigRefs.current.push(greenBall);
+    });
+    setPigCount(pigPositions.length);
+  }, [world, engine]);
 
+  useEffect(() => {
     // Add collision event listener
     const handleCollision = (event: CollisionEvent) => {
       event.pairs.forEach((pair) => {
         const bodyA = pair.bodyA;
         const bodyB = pair.bodyB;
 
-        // Check if either body is the pig
+        // Check if either body is a pig
         if (bodyA.label === 'pig' || bodyB.label === 'pig') {
           const pig = bodyA.label === 'pig' ? bodyA : bodyB;
           const other = bodyA.label === 'pig' ? bodyB : bodyA;
@@ -79,21 +94,22 @@ export function Tower({ world, engine }: TowerProps) {
             Math.pow(pig.velocity.y, 2)
           );
 
-          console.log("pig hit something", speed);
+          console.log(speed)
 
           // If pig hits something at high speed or is hit by the bird, remove it
           if (speed > 5 || other.collisionFilter.group === -1) {
+            console.log(`Pig destroyed! Remaining pigs: ${pigRefs.current.length - 1}`);
             Composite.remove(world, pig);
-            pigRef.current = null;
+            pigRefs.current = pigRefs.current.filter(p => p.id !== pig.id);
+            setPigCount(prev => prev - 1);
           }
         }
       });
     };
 
-    // Add update event listener to check if pig is out of bounds
+    // Add update event listener to check if pigs are out of bounds
     const handleUpdate = () => {
-      if (pigRef.current) {
-        const pig = pigRef.current;
+      pigRefs.current.forEach((pig) => {
         const margin = 100; // Extra margin to ensure pig is fully off screen
 
         // Check if pig is outside viewport
@@ -103,11 +119,12 @@ export function Tower({ world, engine }: TowerProps) {
           pig.position.y < -margin ||
           pig.position.y > window.innerHeight + margin
         ) {
-          console.log("pig left viewport");
+          console.log(`Pig left viewport! Remaining pigs: ${pigRefs.current.length - 1}`);
           Composite.remove(world, pig);
-          pigRef.current = null;
+          pigRefs.current = pigRefs.current.filter(p => p.id !== pig.id);
+          setPigCount(prev => prev - 1);
         }
-      }
+      });
     };
 
     // Add event listeners
