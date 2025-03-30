@@ -6,6 +6,7 @@ const blockImage = "/block.png";
 interface TowerProps {
   world: Matter.World;
   engine: Matter.Engine;
+  level: number;
   pigCount: number;
   setPigCount: (count: number | ((prev: number) => number)) => void;
 }
@@ -17,7 +18,13 @@ interface CollisionEvent {
   }>;
 }
 
-export function Tower({ world, engine, pigCount, setPigCount }: TowerProps) {
+export function Tower({
+  world,
+  engine,
+  pigCount,
+  setPigCount,
+  level,
+}: TowerProps) {
   const towerRefs = useRef<Matter.Body[]>([]);
   const pigRefs = useRef<Matter.Body[]>([]);
 
@@ -27,7 +34,7 @@ export function Tower({ world, engine, pigCount, setPigCount }: TowerProps) {
 
   useEffect(() => {
     // Clean up previous tower
-    towerRefs.current.forEach(body => Composite.remove(world, body));
+    towerRefs.current.forEach((body) => Composite.remove(world, body));
     towerRefs.current = [];
     pigRefs.current = [];
 
@@ -35,10 +42,10 @@ export function Tower({ world, engine, pigCount, setPigCount }: TowerProps) {
     const towerRows = 8;
     const boxSize = 60;
     const towerX = (window.innerWidth * 3) / 4;
-    const towerY = window.innerHeight - (towerRows * boxSize) - 225;
+    const towerY = window.innerHeight - towerRows * boxSize - 225;
 
     for (let row = 0; row < towerRows; row++) {
-      const x = row === towerRows-1 ? towerX - 10 : towerX ;
+      const x = row === towerRows - 1 ? towerX - 10 : towerX;
       const y = towerY + row * boxSize;
       const box = Bodies.rectangle(x, y, boxSize, boxSize, {
         render: {
@@ -60,7 +67,7 @@ export function Tower({ world, engine, pigCount, setPigCount }: TowerProps) {
     // ];
     const pigPositions = [
       { x: window.innerWidth - 550, y: window.innerHeight - 250 },
-      { x: window.innerWidth - 400, y: window.innerHeight - 250 }
+      { x: window.innerWidth - 400, y: window.innerHeight - 250 },
     ];
 
     pigPositions.forEach(({ x, y }) => {
@@ -68,14 +75,14 @@ export function Tower({ world, engine, pigCount, setPigCount }: TowerProps) {
         render: {
           fillStyle: "#4CAF50",
         },
-        label: 'pig',
+        label: "pig",
       });
       Composite.add(world, greenBall);
       towerRefs.current.push(greenBall);
       pigRefs.current.push(greenBall);
     });
     setPigCount(pigPositions.length);
-  }, [world, engine]);
+  }, [world, engine, level]);
 
   useEffect(() => {
     // Add collision event listener
@@ -85,14 +92,13 @@ export function Tower({ world, engine, pigCount, setPigCount }: TowerProps) {
         const bodyB = pair.bodyB;
 
         // Check if either body is a pig
-        if (bodyA.label === 'pig' || bodyB.label === 'pig') {
-          const pig = bodyA.label === 'pig' ? bodyA : bodyB;
-          const other = bodyA.label === 'pig' ? bodyB : bodyA;
+        if (bodyA.label === "pig" || bodyB.label === "pig") {
+          const pig = bodyA.label === "pig" ? bodyA : bodyB;
+          const other = bodyA.label === "pig" ? bodyB : bodyA;
 
           // Calculate collision speed
           const speed = Math.sqrt(
-            Math.pow(pig.velocity.x, 2) + 
-            Math.pow(pig.velocity.y, 2)
+            Math.pow(pig.velocity.x, 2) + Math.pow(pig.velocity.y, 2)
           );
 
           // Calculate impact force using relative velocity
@@ -100,10 +106,16 @@ export function Tower({ world, engine, pigCount, setPigCount }: TowerProps) {
           const impactForce = Vector.magnitude(relativeVelocity);
 
           // If pig hits something at high speed or is hit hard enough, remove it
-          if (speed > 5 || impactForce > 5 || other.collisionFilter.group === -1) {
-            console.log(`Pig destroyed! Remaining pigs: ${pigRefs.current.length - 1}`);
+          if (
+            speed > 5 ||
+            impactForce > 5 ||
+            other.collisionFilter.group === -1
+          ) {
+            console.log(
+              `Pig destroyed! Remaining pigs: ${pigRefs.current.length - 1}`
+            );
             Composite.remove(world, pig);
-            pigRefs.current = pigRefs.current.filter(p => p.id !== pig.id);
+            pigRefs.current = pigRefs.current.filter((p) => p.id !== pig.id);
             setPigCount((prev: number) => prev - 1);
           }
         }
@@ -122,24 +134,26 @@ export function Tower({ world, engine, pigCount, setPigCount }: TowerProps) {
           pig.position.y < -margin ||
           pig.position.y > window.innerHeight + margin
         ) {
-          console.log(`Pig left viewport! Remaining pigs: ${pigRefs.current.length - 1}`);
+          console.log(
+            `Pig left viewport! Remaining pigs: ${pigRefs.current.length - 1}`
+          );
           Composite.remove(world, pig);
-          pigRefs.current = pigRefs.current.filter(p => p.id !== pig.id);
+          pigRefs.current = pigRefs.current.filter((p) => p.id !== pig.id);
           setPigCount((prev: number) => prev - 1);
         }
       });
     };
 
     // Add event listeners
-    Events.on(engine, 'collisionStart', handleCollision);
-    Events.on(engine, 'afterUpdate', handleUpdate);
+    Events.on(engine, "collisionStart", handleCollision);
+    Events.on(engine, "afterUpdate", handleUpdate);
 
     return () => {
-      Events.off(engine, 'collisionStart', handleCollision);
-      Events.off(engine, 'afterUpdate', handleUpdate);
-      towerRefs.current.forEach(body => Composite.remove(world, body));
+      Events.off(engine, "collisionStart", handleCollision);
+      Events.off(engine, "afterUpdate", handleUpdate);
+      towerRefs.current.forEach((body) => Composite.remove(world, body));
     };
-  }, [world, engine]);
+  }, [world, engine, level]);
 
   return null;
-} 
+}
