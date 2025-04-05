@@ -15,6 +15,7 @@ interface SlingshotProps {
   setBirdCount: (count: number | ((prev: number) => number)) => void;
   level: { level: number; type: string };
   setGameOver: (gameOver: boolean) => void;
+  setAngryModeActivated: (angryModeActivated: boolean) => void;
 }
 
 interface SlingshotConfig {
@@ -33,6 +34,7 @@ export function Slingshot({
   engine,
   level,
   setGameOver,
+  setAngryModeActivated,
 }: SlingshotProps) {
   const ballRef = useRef<Matter.Body | null>(null);
   const constraintRef = useRef<Matter.Constraint | null>(null);
@@ -41,7 +43,7 @@ export function Slingshot({
   const hasBeenFiredRef = useRef(false);
   const birdCountRef = useRef(birdCount);
   const pigCountRef = useRef(pigCount);
-  const isMegaRef = useRef(false);
+  const isAngryRef = useRef(false);
   const powerFactorRef = useRef(0.002 * SCALE);
 
   const angrySequence = useRef<string>("");
@@ -55,7 +57,8 @@ export function Slingshot({
           if (angrySequence.current === "angry") {
             console.log("ANGRY activated!");
             angrySequence.current = "";
-            isMegaRef.current = true;
+            isAngryRef.current = true;
+            setAngryModeActivated(true);
             const scaleFactor = 2;
 
             // Scale slingshot
@@ -128,7 +131,7 @@ export function Slingshot({
     }
 
     const { slingshotX, slingshotY, slingshotHeight } = config;
-    const ballRadius = (isMegaRef.current ? 100 : 50) * SCALE;
+    const ballRadius = (isAngryRef.current ? 100 : 50) * SCALE;
 
     // Create initial ball
     const ball = Bodies.circle(
@@ -136,13 +139,13 @@ export function Slingshot({
       slingshotY -
         slingshotHeight / 2 +
         ballRadius -
-        (isMegaRef.current ? 200 : 100) * SCALE,
+        (isAngryRef.current ? 200 : 100) * SCALE,
       ballRadius,
       {
         restitution: 0.8,
         render: {
           sprite: {
-            texture: isMegaRef.current ? reallyAngryKathiImage : birdImage,
+            texture: isAngryRef.current ? reallyAngryKathiImage : birdImage,
             xScale: (ballRadius * 2 + 10) / 128,
             yScale: (ballRadius * 2 + 8) / 128,
           },
@@ -160,7 +163,7 @@ export function Slingshot({
         slingshotY -
         slingshotHeight / 2 +
         ballRadius -
-        (isMegaRef.current ? 180 : 90) * SCALE,
+        (isAngryRef.current ? 180 : 90) * SCALE,
     };
     fixedPointRef.current = fixedPoint;
 
@@ -190,7 +193,8 @@ export function Slingshot({
     if (ballRef.current) Composite.remove(world, ballRef.current);
     if (constraintRef.current) Composite.remove(world, constraintRef.current);
     if (slingshotRef.current) Composite.remove(world, slingshotRef.current);
-    isMegaRef.current = false;
+    isAngryRef.current = false;
+    setAngryModeActivated(false);
     powerFactorRef.current = 0.002 * SCALE;
 
     // Create slingshot

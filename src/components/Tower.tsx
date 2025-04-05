@@ -13,6 +13,7 @@ interface TowerProps {
   level: { level: number; type: string };
   pigCount: number;
   setPigCount: (count: number | ((prev: number) => number)) => void;
+  angryModeActivated: boolean;
 }
 
 interface CollisionEvent {
@@ -32,6 +33,7 @@ export function Tower({
   pigCount,
   setPigCount,
   level,
+  angryModeActivated,
 }: TowerProps) {
   const towerRefs = useRef<Matter.Body[]>([]);
   const pigRefs = useRef<Matter.Body[]>([]);
@@ -53,6 +55,11 @@ export function Tower({
 
   useEffect(() => {
     if (level.level === 4) {
+      // Clean up previous tower
+      towerRefs.current.forEach((body) => Composite.remove(world, body));
+      towerRefs.current = [];
+      pigRefs.current = [];
+
       const levelData = LEVEL_LAYOUT[level.level];
       const pigPositions = levelData.pigs;
       const ballRadius = 50;
@@ -75,6 +82,9 @@ export function Tower({
       });
       setPigCount(pigPositions.length);
     }
+    return () => {
+      towerRefs.current.forEach((body) => Composite.remove(world, body));
+    };
   }, [level]);
 
   useEffect(() => {
@@ -160,6 +170,9 @@ export function Tower({
       pigRefs.current.push(greenBall);
     });
     setPigCount(pigPositions.length);
+    return () => {
+      towerRefs.current.forEach((body) => Composite.remove(world, body));
+    };
   }, [world, engine, level]);
 
   useEffect(() => {
@@ -171,7 +184,7 @@ export function Tower({
 
         // Check if either body is a pig
         if (bodyA.label === "pig" || bodyB.label === "pig") {
-          if (level.level >= 4) {
+          if (level.level >= 4 && !angryModeActivated) {
             return;
           }
 
@@ -274,9 +287,8 @@ export function Tower({
     return () => {
       Events.off(engine, "collisionStart", handleCollision);
       Events.off(engine, "afterUpdate", handleUpdate);
-      towerRefs.current.forEach((body) => Composite.remove(world, body));
     };
-  }, [world, engine, level]);
+  }, [world, engine, level, angryModeActivated]);
 
   return null;
 }

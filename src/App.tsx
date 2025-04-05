@@ -4,6 +4,7 @@ import { Tower } from "./components/Tower";
 import "./App.css";
 import { useState, useEffect } from "react";
 import { LEVEL_LAYOUT } from "./components/Levels";
+import { Fireworks } from "@fireworks-js/react";
 
 import logo from "./assets/angry_kathi_logo.png";
 
@@ -16,9 +17,10 @@ function App() {
   const [pigCount, setPigCount] = useState(0);
   const [level, setLevel] = useState({ level: 1, type: "regular" });
   const [gameOver, setGameOver] = useState(false);
-  const [gameStarted, setGameStarted] = useState(true);
+  const [gameStarted, setGameStarted] = useState(false);
   const [prisonMichaelMessageOpen, setPrisonMichaelMessageOpen] =
     useState(true);
+  const [angryModeActivated, setAngryModeActivated] = useState(false);
 
   // Read initial level from URL
   useEffect(() => {
@@ -72,6 +74,7 @@ function App() {
                 pigCount={pigCount}
                 setBirdCount={setBirdCount}
                 setGameOver={setGameOver}
+                setAngryModeActivated={setAngryModeActivated}
               />
               <Tower
                 world={world}
@@ -79,6 +82,7 @@ function App() {
                 pigCount={pigCount}
                 setPigCount={setPigCount}
                 level={level}
+                angryModeActivated={angryModeActivated}
               />
             </>
           )}
@@ -108,7 +112,7 @@ function App() {
           </span>
         </div>
       )}
-      {gameStarted && pigCount === 0 && (
+      {gameStarted && level.level < 4 && pigCount === 0 && (
         <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white px-2 py-1 space-x-2">
           <span>Michael had it coming!</span>
           <button
@@ -118,6 +122,37 @@ function App() {
             Next level
           </button>
         </span>
+      )}
+      {gameStarted && level.level >= 4 && pigCount === 0 && (
+        <>
+          <Fireworks
+            options={{
+              rocketsPoint: {
+                min: 0,
+                max: 100,
+              },
+              intensity: 30,
+              explosion: 8,
+              decay: { min: 0.015, max: 0.03 },
+              flickering: 50,
+              traceLength: 3,
+              traceSpeed: 10,
+              opacity: 0.5,
+            }}
+            style={{
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              position: "fixed",
+              zIndex: 1,
+            }}
+          />
+          <span className="flex flex-col space-y-2 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white px-2 py-1 space-x-2 items-center animate-bounce">
+            <span className="text-4xl font-bold">Congratulations!</span>
+            <span>You've defeated the Michaels and won the game!</span>
+          </span>
+        </>
       )}
       {gameStarted && gameOver && (
         <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white px-2 py-1 space-x-2">
