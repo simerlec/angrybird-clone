@@ -18,6 +18,10 @@ interface CollisionEvent {
   pairs: Array<{
     bodyA: Matter.Body;
     bodyB: Matter.Body;
+    collision: {
+      depth: number;
+      normal: Matter.Vector;
+    };
   }>;
 }
 
@@ -30,6 +34,17 @@ export function Tower({
 }: TowerProps) {
   const towerRefs = useRef<Matter.Body[]>([]);
   const pigRefs = useRef<Matter.Body[]>([]);
+  const pigsCanBeDestroyed = useRef(false);
+  const pigPressure = useRef<
+    Record<number, { time: number; contacts: number }>
+  >({});
+
+  useEffect(() => {
+    pigsCanBeDestroyed.current = false;
+    setTimeout(() => {
+      pigsCanBeDestroyed.current = true;
+    }, 1000);
+  }, [level]);
 
   useEffect(() => {
     console.log(`Pig count changed: ${pigCount}`);
@@ -45,21 +60,41 @@ export function Tower({
     const boxSize = 60 * SCALE;
 
     const levelData = LEVEL_LAYOUT[level.level];
-    const towerCount = levelData.towers.length;
+    const boxCount = levelData.boxes.length;
 
-    for (let towerIndex = 0; towerIndex < towerCount; towerIndex++) {
-      const tower = levelData.towers[towerIndex];
-      for (let row = 1; row < tower.count + 1; row++) {
-        // const x = row === towerRows - 1 ? towerX - 10 : towerX;
-        const x = tower.x;
-        const y = tower.y - row * boxSize;
-        const box = Bodies.rectangle(x, y, boxSize, boxSize, {
-          render: {
-            sprite: {
-              texture: blockImage,
-              xScale: (boxSize + 10) / 128,
-              yScale: (boxSize + 10) / 128,
+    for (let boxIndex = 0; boxIndex < boxCount; boxIndex++) {
+      const boxData = levelData.boxes[boxIndex];
+
+      if (boxData.type === "tower") {
+        // Handle tower boxes (stacked)
+        for (let row = 1; row < boxData.count + 1; row++) {
+          const x = boxData.x;
+          const y = boxData.y - row * boxSize;
+
+          const box = Bodies.rectangle(x, y, boxSize, boxSize, {
+            render: {
+              sprite: {
+                texture: blockImage,
+                xScale: (boxSize + 10) / 128,
+                yScale: (boxSize + 10) / 128,
+              },
             },
+            restitution: 0.1,
+            friction: 1,
+            frictionAir: 0.01,
+            density: 0.001,
+          });
+          Composite.add(world, box);
+          towerRefs.current.push(box);
+        }
+      } else {
+        // Handle wall boxes (single element)
+        const width = boxData.width || boxSize * 2;
+        const height = boxData.height || boxSize * 0.5;
+
+        const box = Bodies.rectangle(boxData.x, boxData.y, width, height, {
+          render: {
+            fillStyle: "#8B4513",
           },
           restitution: 0.1,
           friction: 1,
@@ -108,6 +143,30 @@ export function Tower({
           const pig = bodyA.label === "pig" ? bodyA : bodyB;
           const other = bodyA.label === "pig" ? bodyB : bodyA;
 
+          // Track sustained pressure
+          const now = Date.now();
+          if (!pigPressure.current[pig.id]) {
+            pigPressure.current[pig.id] = { time: now, contacts: 1 };
+          } else {
+            pigPressure.current[pig.id].contacts++;
+            // If pig has been under pressure for more than 2 seconds with multiple contacts
+            if (
+              now - pigPressure.current[pig.id].time > 2000 &&
+              pigPressure.current[pig.id].contacts > 3
+            ) {
+              if (pigsCanBeDestroyed.current) {
+                console.log("Pig destroyed by sustained pressure!");
+                Composite.remove(world, pig);
+                pigRefs.current = pigRefs.current.filter(
+                  (p) => p.id !== pig.id
+                );
+                setPigCount((prev: number) => prev - 1);
+                delete pigPressure.current[pig.id];
+                return;
+              }
+            }
+          }
+
           // Calculate collision speed
           const speed = Math.sqrt(
             Math.pow(pig.velocity.x, 2) + Math.pow(pig.velocity.y, 2)
@@ -135,20 +194,24 @@ export function Tower({
             impactForce,
             verticalSpeed,
             angularSpeed,
+            crushDepth: pair.collision?.depth,
             isBird: other.collisionFilter.group === -1,
           });
 
           if (
-            other.collisionFilter.group === -1 ||
-            verticalSpeed > 4 ||
-            (impactForce > 4 && speed > 5) ||
-            angularSpeed > 2
+            pigsCanBeDestroyed.current &&
+            (other.collisionFilter.group === -1 ||
+              verticalSpeed > 4 ||
+              (impactForce > 8 && speed > 5) ||
+              angularSpeed > 2 ||
+              (pair.collision && pair.collision.depth > 1)) // Death by crushing/weight
           ) {
             console.log({
               speed,
               impactForce,
               verticalSpeed,
               angularSpeed,
+              crushDepth: pair.collision?.depth,
               isBird: other.collisionFilter.group === -1,
             });
             console.log(
@@ -162,18 +225,17 @@ export function Tower({
       });
     };
 
-    // Add update event listener to check if pigs are out of bounds
+    // Clean up pressure tracking when pig leaves viewport
     const handleUpdate = () => {
       pigRefs.current.forEach((pig) => {
-        const margin = 100; // Extra margin to ensure pig is fully off screen
-
-        // Check if pig is outside viewport
+        const margin = 100;
         if (
           pig.position.x < -margin ||
           pig.position.x > window.innerWidth + margin ||
           pig.position.y < -margin ||
           pig.position.y > window.innerHeight + margin
         ) {
+          delete pigPressure.current[pig.id];
           console.log(
             `Pig left viewport! Remaining pigs: ${pigRefs.current.length - 1}`
           );
