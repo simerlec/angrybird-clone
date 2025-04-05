@@ -5,6 +5,7 @@ import { SCALE } from "../App";
 
 const blockImage = "/block.png";
 const pigImage = "/victim_michael.png";
+const prisonMichaelImage = "/prison_michael.png";
 
 interface TowerProps {
   world: Matter.World;
@@ -51,6 +52,36 @@ export function Tower({
   }, [pigCount]);
 
   useEffect(() => {
+    if (level.level === 4) {
+      const levelData = LEVEL_LAYOUT[level.level];
+      const pigPositions = levelData.pigs;
+      const ballRadius = 50;
+
+      pigPositions.forEach(({ x, y }) => {
+        const greenBall = Bodies.circle(x, y, 150, {
+          render: {
+            sprite: {
+              texture: prisonMichaelImage,
+              xScale: (ballRadius * 2 + 10) / 128,
+              yScale: (ballRadius * 2 + 8) / 128,
+            },
+          },
+          label: "pig",
+          isStatic: true,
+        });
+        Composite.add(world, greenBall);
+        towerRefs.current.push(greenBall);
+        pigRefs.current.push(greenBall);
+      });
+      setPigCount(pigPositions.length);
+    }
+  }, [level]);
+
+  useEffect(() => {
+    if (level.level === 4) {
+      return;
+    }
+
     // Clean up previous tower
     towerRefs.current.forEach((body) => Composite.remove(world, body));
     towerRefs.current = [];
@@ -140,6 +171,10 @@ export function Tower({
 
         // Check if either body is a pig
         if (bodyA.label === "pig" || bodyB.label === "pig") {
+          if (level.level >= 4) {
+            return;
+          }
+
           const pig = bodyA.label === "pig" ? bodyA : bodyB;
           const other = bodyA.label === "pig" ? bodyB : bodyA;
 
@@ -204,19 +239,8 @@ export function Tower({
               verticalSpeed > 4 ||
               (impactForce > 8 && speed > 5) ||
               angularSpeed > 2 ||
-              (pair.collision && pair.collision.depth > 1)) // Death by crushing/weight
+              (pair.collision && pair.collision.depth > 1))
           ) {
-            console.log({
-              speed,
-              impactForce,
-              verticalSpeed,
-              angularSpeed,
-              crushDepth: pair.collision?.depth,
-              isBird: other.collisionFilter.group === -1,
-            });
-            console.log(
-              `Pig destroyed! Remaining pigs: ${pigRefs.current.length - 1}`
-            );
             Composite.remove(world, pig);
             pigRefs.current = pigRefs.current.filter((p) => p.id !== pig.id);
             setPigCount((prev: number) => prev - 1);
@@ -236,9 +260,6 @@ export function Tower({
           pig.position.y > window.innerHeight + margin
         ) {
           delete pigPressure.current[pig.id];
-          console.log(
-            `Pig left viewport! Remaining pigs: ${pigRefs.current.length - 1}`
-          );
           Composite.remove(world, pig);
           pigRefs.current = pigRefs.current.filter((p) => p.id !== pig.id);
           setPigCount((prev: number) => prev - 1);

@@ -4,6 +4,7 @@ import { SCALE } from "../App";
 
 const slingshotImage = "/sling.png";
 const birdImage = "/angry_kathi.png";
+const reallyAngryKathiImage = "/really_angry_kathi.png";
 
 interface SlingshotProps {
   world: Matter.World;
@@ -40,6 +41,68 @@ export function Slingshot({
   const hasBeenFiredRef = useRef(false);
   const birdCountRef = useRef(birdCount);
   const pigCountRef = useRef(pigCount);
+  const isMegaRef = useRef(false);
+  const powerFactorRef = useRef(0.002 * SCALE);
+
+  const angrySequence = useRef<string>("");
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (level.level === 4) {
+        const expectedChar = "angry"[angrySequence.current.length];
+        if (e.key === expectedChar) {
+          angrySequence.current += e.key;
+          if (angrySequence.current === "angry") {
+            console.log("ANGRY activated!");
+            angrySequence.current = "";
+            isMegaRef.current = true;
+            const scaleFactor = 2;
+
+            // Scale slingshot
+            if (slingshotRef.current) {
+              Body.scale(slingshotRef.current, scaleFactor, scaleFactor);
+              const sprite = slingshotRef.current.render.sprite;
+              if (sprite) {
+                sprite.xScale *= scaleFactor;
+                sprite.yScale *= scaleFactor;
+              }
+            }
+
+            // Scale current bird
+            if (ballRef.current) {
+              Body.scale(ballRef.current, scaleFactor, scaleFactor);
+              const sprite = ballRef.current.render.sprite;
+              if (sprite) {
+                sprite.texture = reallyAngryKathiImage;
+                sprite.xScale *= scaleFactor;
+                sprite.yScale *= scaleFactor;
+              }
+            }
+
+            // Update constraint position
+            if (constraintRef.current && fixedPointRef.current) {
+              const newY = fixedPointRef.current.y - 50 * SCALE; // Adjust for larger bird
+              fixedPointRef.current.y = newY;
+              constraintRef.current.pointA.y = newY;
+            }
+
+            powerFactorRef.current = 0.01;
+          }
+        } else {
+          angrySequence.current = "";
+          if (e.key === "a") {
+            angrySequence.current = "a";
+          }
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [level]);
 
   useEffect(() => {
     birdCountRef.current = birdCount;
@@ -65,18 +128,21 @@ export function Slingshot({
     }
 
     const { slingshotX, slingshotY, slingshotHeight } = config;
-    const ballRadius = 50 * SCALE;
+    const ballRadius = (isMegaRef.current ? 100 : 50) * SCALE;
 
     // Create initial ball
     const ball = Bodies.circle(
       slingshotX,
-      slingshotY - slingshotHeight / 2 + ballRadius - 100 * SCALE,
+      slingshotY -
+        slingshotHeight / 2 +
+        ballRadius -
+        (isMegaRef.current ? 200 : 100) * SCALE,
       ballRadius,
       {
         restitution: 0.8,
         render: {
           sprite: {
-            texture: birdImage,
+            texture: isMegaRef.current ? reallyAngryKathiImage : birdImage,
             xScale: (ballRadius * 2 + 10) / 128,
             yScale: (ballRadius * 2 + 8) / 128,
           },
@@ -90,7 +156,11 @@ export function Slingshot({
     // Create constraint
     const fixedPoint = {
       x: slingshotX,
-      y: slingshotY - slingshotHeight / 2 + ballRadius - 90 * SCALE,
+      y:
+        slingshotY -
+        slingshotHeight / 2 +
+        ballRadius -
+        (isMegaRef.current ? 180 : 90) * SCALE,
     };
     fixedPointRef.current = fixedPoint;
 
@@ -120,6 +190,8 @@ export function Slingshot({
     if (ballRef.current) Composite.remove(world, ballRef.current);
     if (constraintRef.current) Composite.remove(world, constraintRef.current);
     if (slingshotRef.current) Composite.remove(world, slingshotRef.current);
+    isMegaRef.current = false;
+    powerFactorRef.current = 0.002 * SCALE;
 
     // Create slingshot
     const slingshotWidth = 100 * SCALE;
@@ -166,13 +238,12 @@ export function Slingshot({
           fixedPointRef.current,
           ballRef.current!.position
         );
-        const powerFactor = 0.002 * SCALE;
 
         // Apply the force to the ball
         Body.applyForce(
           ballRef.current!,
           ballRef.current!.position,
-          Vector.mult(force, powerFactor)
+          Vector.mult(force, powerFactorRef.current)
         );
         hasBeenFiredRef.current = true;
         setBirdCount((prev) => prev - 1);

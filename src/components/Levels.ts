@@ -213,4 +213,13 @@ export const LEVEL_LAYOUT: Record<
       },
     ],
   },
+  "4": {
+    boxes: [],
+    pigs: [
+      {
+        x: window.innerWidth * 0.75,
+        y: window.innerHeight - DISTANCE_FROM_GROUND - 200,
+      },
+    ],
+  },
 };

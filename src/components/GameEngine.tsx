@@ -11,13 +11,18 @@ import {
 } from "matter-js";
 
 interface GameEngineProps {
-  children: (world: Matter.World, mouseConstraint: Matter.MouseConstraint, engine: Matter.Engine) => React.ReactNode;
+  children: (
+    world: Matter.World,
+    mouseConstraint: Matter.MouseConstraint,
+    engine: Matter.Engine
+  ) => React.ReactNode;
 }
 
 export function GameEngine({ children }: GameEngineProps) {
   const sceneRef = useRef<HTMLDivElement>(null);
   const [world, setWorld] = useState<Matter.World | null>(null);
-  const [mouseConstraint, setMouseConstraint] = useState<Matter.MouseConstraint | null>(null);
+  const [mouseConstraint, setMouseConstraint] =
+    useState<Matter.MouseConstraint | null>(null);
   const [engine, setEngine] = useState<Matter.Engine | null>(null);
 
   useEffect(() => {
@@ -56,7 +61,7 @@ export function GameEngine({ children }: GameEngineProps) {
           fillStyle: "transparent",
           strokeStyle: "transparent",
         },
-        label: 'ground',
+        label: "ground",
       }
     );
 
@@ -99,7 +104,10 @@ export function GameEngine({ children }: GameEngineProps) {
 
   return (
     <div ref={sceneRef} className="game-container">
-      {world && mouseConstraint && engine && children(world, mouseConstraint, engine)}
+      {world &&
+        mouseConstraint &&
+        engine &&
+        children(world, mouseConstraint, engine)}
     </div>
   );
-} 
+}

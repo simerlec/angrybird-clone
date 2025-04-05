@@ -16,7 +16,10 @@ function App() {
   const [pigCount, setPigCount] = useState(0);
   const [level, setLevel] = useState({ level: 1, type: "regular" });
   const [gameOver, setGameOver] = useState(false);
-  const [showLogo, setShowLogo] = useState(true);
+  const [gameStarted, setGameStarted] = useState(true);
+  const [prisonMichaelMessageOpen, setPrisonMichaelMessageOpen] =
+    useState(true);
+
   // Read initial level from URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -56,53 +59,57 @@ function App() {
 
   return (
     <>
-      <GameEngine>
-        {(world, mouseConstraint, engine) => (
-          <>
-            <Slingshot
-              world={world}
-              mouseConstraint={mouseConstraint}
-              engine={engine}
-              level={level}
-              birdCount={birdCount}
-              pigCount={pigCount}
-              setBirdCount={setBirdCount}
-              setGameOver={setGameOver}
-            />
-            <Tower
-              world={world}
-              engine={engine}
-              pigCount={pigCount}
-              setPigCount={setPigCount}
-              level={level}
-            />
-          </>
-        )}
-      </GameEngine>
-      <div className="flex space-x-2 absolute top-4 left-4">
-        <span className="text-black border rounded-sm bg-white px-2 py-1">
-          Kathi's left: {birdCount}
-        </span>
-        <span className="text-black border rounded-sm bg-white px-2 py-1">
-          Michael's left: {pigCount}
-        </span>
-        <span className="text-black border rounded-sm bg-white px-2 py-1">
-          Level: {level.level}
-        </span>
-      </div>
-      {level.level === 1 && showLogo && (
+      {gameStarted && (
+        <GameEngine>
+          {(world, mouseConstraint, engine) => (
+            <>
+              <Slingshot
+                world={world}
+                mouseConstraint={mouseConstraint}
+                engine={engine}
+                level={level}
+                birdCount={birdCount}
+                pigCount={pigCount}
+                setBirdCount={setBirdCount}
+                setGameOver={setGameOver}
+              />
+              <Tower
+                world={world}
+                engine={engine}
+                pigCount={pigCount}
+                setPigCount={setPigCount}
+                level={level}
+              />
+            </>
+          )}
+        </GameEngine>
+      )}
+      {!gameStarted && (
         <div className="flex flex-col space-y-10 absolute top-1/4 left-1/2 -translate-x-1/2">
           <img src={logo} alt="logo" className="w-[800px] animate-bounce" />
           <button
             className="!bg-blue-500 hover:!bg-blue-600 text-white px-2 py-1 rounded-sm w-[300px] h-[100px] text-2xl mx-auto"
-            onClick={() => setShowLogo(false)}
+            onClick={() => setGameStarted(true)}
           >
             Start game
           </button>
         </div>
       )}
-      {pigCount === 0 && (
-        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white px-2 py-1 space-x-4">
+      {gameStarted && (
+        <div className="flex space-x-2 absolute top-4 left-4">
+          <span className="text-black border rounded-sm bg-white px-2 py-1">
+            Kathi's left: {birdCount}
+          </span>
+          <span className="text-black border rounded-sm bg-white px-2 py-1">
+            Michael's left: {pigCount}
+          </span>
+          <span className="text-black border rounded-sm bg-white px-2 py-1">
+            Level: {level.level}
+          </span>
+        </div>
+      )}
+      {gameStarted && pigCount === 0 && (
+        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white px-2 py-1 space-x-2">
           <span>Michael had it coming!</span>
           <button
             className="bg-blue-500 text-white px-2 py-1 rounded-sm"
@@ -112,14 +119,28 @@ function App() {
           </button>
         </span>
       )}
-      {gameOver && (
-        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white px-2 py-1 space-x-4">
+      {gameStarted && gameOver && (
+        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white px-2 py-1 space-x-2">
           <span>Michael won? Impossible!</span>
           <button
             className="bg-blue-500 text-white px-2 py-1 rounded-sm"
             onClick={restartLevel}
           >
             Restart level
+          </button>
+        </span>
+      )}
+      {gameStarted && level.level === 4 && prisonMichaelMessageOpen && (
+        <span className="flex flex-col absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white px-2 py-1 space-y-2">
+          <span>
+            Oh no, it's Prison Michael! We cannot win without getting really
+            ANGRY!
+          </span>
+          <button
+            className="bg-blue-500 text-white px-2 py-1 rounded-sm self-center"
+            onClick={() => setPrisonMichaelMessageOpen(false)}
+          >
+            I want to try!
           </button>
         </span>
       )}
