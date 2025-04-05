@@ -1,20 +1,19 @@
 import { useEffect, useRef } from "react";
-import {
-  Bodies,
-  Composite,
-  Constraint,
-  Events,
-  Vector,
-  Body,
-} from "matter-js";
+import { Bodies, Composite, Constraint, Events, Vector, Body } from "matter-js";
+import { SCALE } from "../App";
 
 const slingshotImage = "/sling.png";
-const birdImage = "/bird.png";
+const birdImage = "/angry_kathi.png";
 
 interface SlingshotProps {
   world: Matter.World;
   mouseConstraint: Matter.MouseConstraint;
   engine: Matter.Engine;
+  birdCount: number;
+  pigCount: number;
+  setBirdCount: (count: number | ((prev: number) => number)) => void;
+  level: { level: number; type: string };
+  setGameOver: (gameOver: boolean) => void;
 }
 
 interface SlingshotConfig {
@@ -24,21 +23,54 @@ interface SlingshotConfig {
   slingshotY: number;
 }
 
-export function Slingshot({ world, mouseConstraint, engine }: SlingshotProps) {
+export function Slingshot({
+  pigCount,
+  birdCount,
+  setBirdCount,
+  world,
+  mouseConstraint,
+  engine,
+  level,
+  setGameOver,
+}: SlingshotProps) {
   const ballRef = useRef<Matter.Body | null>(null);
   const constraintRef = useRef<Matter.Constraint | null>(null);
   const slingshotRef = useRef<Matter.Body | null>(null);
   const fixedPointRef = useRef<{ x: number; y: number } | null>(null);
   const hasBeenFiredRef = useRef(false);
+  const birdCountRef = useRef(birdCount);
+  const pigCountRef = useRef(pigCount);
+
+  useEffect(() => {
+    birdCountRef.current = birdCount;
+  }, [birdCount]);
+
+  useEffect(() => {
+    pigCountRef.current = pigCount;
+  }, [pigCount]);
 
   const createNewBird = (config: SlingshotConfig) => {
+    if (birdCountRef.current <= 0 && pigCountRef.current > 0) {
+      setGameOver(true);
+      return;
+    }
+
+    if (birdCountRef.current <= 0) {
+      return;
+    }
+
+    const bird = ballRef.current;
+    if (bird) {
+      Composite.remove(world, bird);
+    }
+
     const { slingshotX, slingshotY, slingshotHeight } = config;
-    const ballRadius = 50;
+    const ballRadius = 50 * SCALE;
 
     // Create initial ball
     const ball = Bodies.circle(
       slingshotX,
-      slingshotY - slingshotHeight / 2 + ballRadius - 100,
+      slingshotY - slingshotHeight / 2 + ballRadius - 100 * SCALE,
       ballRadius,
       {
         restitution: 0.8,
@@ -58,7 +90,7 @@ export function Slingshot({ world, mouseConstraint, engine }: SlingshotProps) {
     // Create constraint
     const fixedPoint = {
       x: slingshotX,
-      y: slingshotY - slingshotHeight / 2 + ballRadius - 90,
+      y: slingshotY - slingshotHeight / 2 + ballRadius - 90 * SCALE,
     };
     fixedPointRef.current = fixedPoint;
 
@@ -90,8 +122,8 @@ export function Slingshot({ world, mouseConstraint, engine }: SlingshotProps) {
     if (slingshotRef.current) Composite.remove(world, slingshotRef.current);
 
     // Create slingshot
-    const slingshotWidth = 100;
-    const slingshotHeight = 150;
+    const slingshotWidth = 100 * SCALE;
+    const slingshotHeight = 150 * SCALE;
     const slingshotX = window.innerWidth / 4;
     const slingshotY = window.innerHeight - slingshotHeight / 2 - 225;
 
@@ -130,12 +162,20 @@ export function Slingshot({ world, mouseConstraint, engine }: SlingshotProps) {
         Composite.remove(world, constraintRef.current!);
 
         // Calculate the force to apply
-        const force = Vector.sub(fixedPointRef.current, ballRef.current!.position);
-        const powerFactor = 0.004;
+        const force = Vector.sub(
+          fixedPointRef.current,
+          ballRef.current!.position
+        );
+        const powerFactor = 0.002 * SCALE;
 
         // Apply the force to the ball
-        Body.applyForce(ballRef.current!, ballRef.current!.position, Vector.mult(force, powerFactor));
+        Body.applyForce(
+          ballRef.current!,
+          ballRef.current!.position,
+          Vector.mult(force, powerFactor)
+        );
         hasBeenFiredRef.current = true;
+        setBirdCount((prev) => prev - 1);
       }
     };
 
@@ -153,35 +193,42 @@ export function Slingshot({ world, mouseConstraint, engine }: SlingshotProps) {
           bird.position.y > window.innerHeight + margin
         ) {
           // Bird left viewport, create new one
-          Composite.remove(world, bird);
-          createNewBird({ slingshotWidth, slingshotHeight, slingshotX, slingshotY });
+          createNewBird({
+            slingshotWidth,
+            slingshotHeight,
+            slingshotX,
+            slingshotY,
+          });
         } else {
           // Check if bird has stopped moving
           const speed = Math.sqrt(
-            Math.pow(bird.velocity.x, 2) + 
-            Math.pow(bird.velocity.y, 2)
+            Math.pow(bird.velocity.x, 2) + Math.pow(bird.velocity.y, 2)
           );
-          
+
           if (speed < 0.1) {
             // Bird has stopped, create new one
-            Composite.remove(world, bird);
-            createNewBird({ slingshotWidth, slingshotHeight, slingshotX, slingshotY });
+            createNewBird({
+              slingshotWidth,
+              slingshotHeight,
+              slingshotX,
+              slingshotY,
+            });
           }
         }
       }
     };
 
     Events.on(mouseConstraint, "enddrag", handleEndDrag);
-    Events.on(engine, 'afterUpdate', handleUpdate);
+    Events.on(engine, "afterUpdate", handleUpdate);
 
     return () => {
       Events.off(mouseConstraint, "enddrag", handleEndDrag);
-      Events.off(engine, 'afterUpdate', handleUpdate);
+      Events.off(engine, "afterUpdate", handleUpdate);
       if (ballRef.current) Composite.remove(world, ballRef.current);
       if (constraintRef.current) Composite.remove(world, constraintRef.current);
       if (slingshotRef.current) Composite.remove(world, slingshotRef.current);
     };
-  }, [world, mouseConstraint, engine]);
+  }, [world, mouseConstraint, engine, level]);
 
   return null;
-} 
+}

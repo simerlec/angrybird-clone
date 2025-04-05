@@ -1,12 +1,15 @@
 import { useEffect, useRef } from "react";
 import { Bodies, Composite, Events, Vector } from "matter-js";
+import { LEVEL_LAYOUT } from "./Levels";
+import { SCALE } from "../App";
 
 const blockImage = "/block.png";
+const pigImage = "/victim_michael.png";
 
 interface TowerProps {
   world: Matter.World;
   engine: Matter.Engine;
-  level: number;
+  level: { level: number; type: string };
   pigCount: number;
   setPigCount: (count: number | ((prev: number) => number)) => void;
 }
@@ -39,42 +42,51 @@ export function Tower({
     pigRefs.current = [];
 
     // Create simple tower of boxes
-    const towerRows = 8;
-    const boxSize = 60;
-    const towerX = (window.innerWidth * 3) / 4;
-    const towerY = window.innerHeight - towerRows * boxSize - 225;
+    const boxSize = 60 * SCALE;
 
-    for (let row = 0; row < towerRows; row++) {
-      const x = row === towerRows - 1 ? towerX - 10 : towerX;
-      const y = towerY + row * boxSize;
-      const box = Bodies.rectangle(x, y, boxSize, boxSize, {
-        render: {
-          sprite: {
-            texture: blockImage,
-            xScale: (boxSize + 10) / 128,
-            yScale: (boxSize + 10) / 128,
+    const levelData = LEVEL_LAYOUT[level.level];
+    const towerCount = levelData.towers.length;
+
+    for (let towerIndex = 0; towerIndex < towerCount; towerIndex++) {
+      const tower = levelData.towers[towerIndex];
+      for (let row = 1; row < tower.count + 1; row++) {
+        // const x = row === towerRows - 1 ? towerX - 10 : towerX;
+        const x = tower.x;
+        const y = tower.y - row * boxSize;
+        const box = Bodies.rectangle(x, y, boxSize, boxSize, {
+          render: {
+            sprite: {
+              texture: blockImage,
+              xScale: (boxSize + 10) / 128,
+              yScale: (boxSize + 10) / 128,
+            },
           },
-        },
-      });
-      Composite.add(world, box);
-      towerRefs.current.push(box);
+          restitution: 0.1,
+          friction: 1,
+          frictionAir: 0.01,
+          density: 0.001,
+        });
+        Composite.add(world, box);
+        towerRefs.current.push(box);
+      }
     }
 
-    // Add two green balls at the top of the tower
-    // const pigPositions = [
-    //   { x: towerX - 40, y: towerY - 30 },
-    //   { x: towerX + 40, y: towerY - 30 }
-    // ];
-    const pigPositions = [
-      { x: window.innerWidth - 550, y: window.innerHeight - 250 },
-      { x: window.innerWidth - 400, y: window.innerHeight - 250 },
-    ];
+    const ballRadius = 50 * SCALE;
+    const pigPositions = levelData.pigs;
 
     pigPositions.forEach(({ x, y }) => {
-      const greenBall = Bodies.circle(x, y, 30, {
+      const greenBall = Bodies.circle(x, y, 30 * SCALE, {
         render: {
-          fillStyle: "#4CAF50",
+          sprite: {
+            texture: pigImage,
+            xScale: (ballRadius * 2 + 10) / 128,
+            yScale: (ballRadius * 2 + 8) / 128,
+          },
         },
+        restitution: 0.1,
+        friction: 1,
+        frictionAir: 0.01,
+        density: 0.001,
         label: "pig",
       });
       Composite.add(world, greenBall);
@@ -105,12 +117,40 @@ export function Tower({
           const relativeVelocity = Vector.sub(pig.velocity, other.velocity);
           const impactForce = Vector.magnitude(relativeVelocity);
 
-          // If pig hits something at high speed or is hit hard enough, remove it
+          // Calculate vertical velocity (for fall damage)
+          const verticalSpeed = Math.abs(pig.velocity.y);
+
+          // Calculate angular velocity (for spinning damage)
+          const angularSpeed = Math.abs(pig.angularVelocity);
+
+          // Log values for debugging
+
+          // Pig dies if:
+          // 1. Hit by bird directly
+          // 2. Falling too fast (vertical speed > 8)
+          // 3. Hit by something moving fast (impactForce > 8)
+          // 4. Spinning too fast (angularSpeed > 2)
+          console.log({
+            speed,
+            impactForce,
+            verticalSpeed,
+            angularSpeed,
+            isBird: other.collisionFilter.group === -1,
+          });
+
           if (
-            speed > 5 ||
-            impactForce > 5 ||
-            other.collisionFilter.group === -1
+            other.collisionFilter.group === -1 ||
+            verticalSpeed > 4 ||
+            (impactForce > 4 && speed > 5) ||
+            angularSpeed > 2
           ) {
+            console.log({
+              speed,
+              impactForce,
+              verticalSpeed,
+              angularSpeed,
+              isBird: other.collisionFilter.group === -1,
+            });
             console.log(
               `Pig destroyed! Remaining pigs: ${pigRefs.current.length - 1}`
             );
