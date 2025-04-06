@@ -293,6 +293,17 @@ export function Slingshot({
       }
     };
 
+    // prevent dragging of other bodies except the bird
+    const handleStartDrag = (event: Matter.IEvent<Matter.MouseConstraint>) => {
+      const mouseEvent = event as unknown as { body: Matter.Body };
+      if (mouseEvent.body === ballRef.current) {
+        mouseConstraint.constraint.stiffness = 1;
+      } else {
+        mouseConstraint.constraint.stiffness = 0;
+      }
+    };
+
+    Events.on(mouseConstraint, "startdrag", handleStartDrag);
     Events.on(mouseConstraint, "enddrag", handleEndDrag);
     Events.on(engine, "afterUpdate", handleUpdate);
 
