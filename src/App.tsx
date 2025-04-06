@@ -128,8 +128,8 @@ function App() {
           <Fireworks
             options={{
               rocketsPoint: {
-                min: 0,
-                max: 100,
+                min: 50,
+                max: 50,
               },
               intensity: 30,
               explosion: 8,
@@ -138,6 +138,7 @@ function App() {
               traceLength: 3,
               traceSpeed: 10,
               opacity: 0.5,
+              particles: 200,
             }}
             style={{
               top: 0,
