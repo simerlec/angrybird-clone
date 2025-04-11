@@ -91,16 +91,28 @@ function App() {
       {!gameStarted && (
         <div className="flex flex-col space-y-10 absolute top-1/4 left-1/2 -translate-x-1/2">
           <img src={logo} alt="logo" className="w-[800px] animate-bounce" />
+          <div className="flex flex-col space-y-4 text-center bg-black/50 p-4 rounded-md">
+            <span className="text-2xl font-bold whitespace-nowrap">
+              Play the new Angry Kathi game!
+            </span>
+            <span className="text-lg leading-8">
+              Kathi is back and angrier than ever!
+              <br />
+              Can you help her defeat the Michaels?
+            </span>
+          </div>
           <button
-            className="!bg-blue-500 hover:!bg-blue-600 text-white px-2 py-1 rounded-sm w-[300px] h-[100px] text-2xl mx-auto"
+            className="!bg-blue-500 hover:!bg-blue-600 text-white px-2 py-1 rounded-sm w-[300px] h-[100px] text-2xl mx-auto space-x-4 flex items-center justify-center"
             onClick={() => setGameStarted(true)}
           >
-            Start game
+            <span className="text-4xl">😠</span>
+            <span className="text-2xl font-bold">Start game</span>
+            <span className="text-4xl">😠</span>
           </button>
         </div>
       )}
       {gameStarted && (
-        <div className="flex space-x-2 absolute top-4 left-4">
+        <div className="flex space-x-2 absolute top-4 left-4 text-sm">
           <span className="text-black border rounded-sm bg-white px-2 py-1">
             Kathi's left: {birdCount}
           </span>
@@ -113,8 +125,8 @@ function App() {
         </div>
       )}
       {gameStarted && level.level < 4 && pigCount === 0 && (
-        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white px-2 py-1 space-x-2">
-          <span>Michael had it coming!</span>
+        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white p-4 space-x-2 flex flex-col items-center space-y-4">
+          <span>Michael got what he deserved!</span>
           <button
             className="bg-blue-500 text-white px-2 py-1 rounded-sm"
             onClick={continueToNextlevel}
@@ -149,14 +161,23 @@ function App() {
               zIndex: 1,
             }}
           />
-          <span className="flex flex-col space-y-2 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white px-2 py-1 space-x-2 items-center animate-bounce">
-            <span className="text-4xl font-bold">Congratulations!</span>
-            <span>You've defeated the Michaels and won the game!</span>
+          <span className="flex flex-col space-y-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white items-center animate-bounce p-6 text-center z-10">
+            <span className="text-5xl font-bold">Congratulations!</span>
+            <span>
+              You've defeated the Michaels and helped Kathi to get her revenge!
+            </span>
+            <span>
+              ...and as an additional reward, you will also get your birthday
+              presents!
+            </span>
+            <p className="text-4xl mt-8">🎉🎉 Happy birthday! 🎉🎉</p>
+            <br />
+            <span className="text-4xl">🎁🎁🎁</span>
           </span>
         </>
       )}
       {gameStarted && gameOver && (
-        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white px-2 py-1 space-x-2">
+        <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white p-4 space-x-2 flex flex-col items-center space-y-4">
           <span>Michael won? Impossible!</span>
           <button
             className="bg-blue-500 text-white px-2 py-1 rounded-sm"
@@ -167,10 +188,14 @@ function App() {
         </span>
       )}
       {gameStarted && level.level === 4 && prisonMichaelMessageOpen && (
-        <span className="flex flex-col absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white px-2 py-1 space-y-2">
-          <span>
-            Oh no, it's Prison Michael! We cannot win without getting really
-            ANGRY!
+        <span className="flex flex-col absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black border rounded-sm bg-white p-4 space-y-4">
+          <span className="text-lg leading-8 text-center text-pretty space-x-2">
+            <span className="text-4xl">👮‍♀️👮‍♀️</span>
+            <span>
+              Oh no, it's "Hefn Bruder Michael"! We cannot win without getting
+              really ANGRY!
+            </span>
+            <span className="text-4xl">🚨🚨</span>
           </span>
           <button
             className="bg-blue-500 text-white px-2 py-1 rounded-sm self-center"

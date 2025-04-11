@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bodies, Composite, Events, Vector } from "matter-js";
 import { LEVEL_LAYOUT } from "./Levels";
 import { SCALE } from "../App";
+import { SpeechBubble } from "./SpeechBubble";
 
 const blockImage = "/block.png";
 const pigImage = "/victim_michael.png";
@@ -27,6 +28,15 @@ interface CollisionEvent {
   }>;
 }
 
+type SpeechBubbleState =
+  | {
+      type: "show";
+      text: string;
+    }
+  | {
+      type: "hide";
+    };
+
 export function Tower({
   world,
   engine,
@@ -41,6 +51,21 @@ export function Tower({
   const pigPressure = useRef<
     Record<number, { time: number; contacts: number }>
   >({});
+  const [speechBubbleState, setSpeechBubbleState] = useState<SpeechBubbleState>(
+    {
+      type: "hide",
+    }
+  );
+  const [finalPigPosition, setFinalPigPosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (speechBubbleState.type === "show") {
+      const timer = setTimeout(() => {
+        setSpeechBubbleState({ type: "hide" });
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [speechBubbleState]);
 
   useEffect(() => {
     pigsCanBeDestroyed.current = false;
@@ -50,8 +75,10 @@ export function Tower({
   }, [level]);
 
   useEffect(() => {
-    console.log(`Pig count changed: ${pigCount}`);
-  }, [pigCount]);
+    if (angryModeActivated) {
+      setSpeechBubbleState({ type: "show", text: "Oh no, that's not good!" });
+    }
+  }, [angryModeActivated]);
 
   useEffect(() => {
     if (level.level === 4) {
@@ -185,78 +212,87 @@ export function Tower({
         // Check if either body is a pig
         if (bodyA.label === "pig" || bodyB.label === "pig") {
           if (level.level >= 4 && !angryModeActivated) {
+            const pig = bodyA.label === "pig" ? bodyA : bodyB;
+            setFinalPigPosition({ x: pig.position.x, y: pig.position.y });
+            setSpeechBubbleState({ type: "show", text: getSpeechBubbleText() });
             return;
           }
 
-          const pig = bodyA.label === "pig" ? bodyA : bodyB;
-          const other = bodyA.label === "pig" ? bodyB : bodyA;
+          if (bodyA.label === "pig" || bodyB.label === "pig") {
+            if (level.level >= 4 && !angryModeActivated) {
+              return;
+            }
 
-          // Track sustained pressure
-          const now = Date.now();
-          if (!pigPressure.current[pig.id]) {
-            pigPressure.current[pig.id] = { time: now, contacts: 1 };
-          } else {
-            pigPressure.current[pig.id].contacts++;
-            // If pig has been under pressure for more than 2 seconds with multiple contacts
-            if (
-              now - pigPressure.current[pig.id].time > 2000 &&
-              pigPressure.current[pig.id].contacts > 3
-            ) {
-              if (pigsCanBeDestroyed.current) {
-                console.log("Pig destroyed by sustained pressure!");
-                Composite.remove(world, pig);
-                pigRefs.current = pigRefs.current.filter(
-                  (p) => p.id !== pig.id
-                );
-                setPigCount((prev: number) => prev - 1);
-                delete pigPressure.current[pig.id];
-                return;
+            const pig = bodyA.label === "pig" ? bodyA : bodyB;
+            const other = bodyA.label === "pig" ? bodyB : bodyA;
+
+            // Track sustained pressure
+            const now = Date.now();
+            if (!pigPressure.current[pig.id]) {
+              pigPressure.current[pig.id] = { time: now, contacts: 1 };
+            } else {
+              pigPressure.current[pig.id].contacts++;
+              // If pig has been under pressure for more than 2 seconds with multiple contacts
+              if (
+                now - pigPressure.current[pig.id].time > 2000 &&
+                pigPressure.current[pig.id].contacts > 3
+              ) {
+                if (pigsCanBeDestroyed.current) {
+                  console.log("Pig destroyed by sustained pressure!");
+                  Composite.remove(world, pig);
+                  pigRefs.current = pigRefs.current.filter(
+                    (p) => p.id !== pig.id
+                  );
+                  setPigCount((prev: number) => prev - 1);
+                  delete pigPressure.current[pig.id];
+                  return;
+                }
               }
             }
-          }
 
-          // Calculate collision speed
-          const speed = Math.sqrt(
-            Math.pow(pig.velocity.x, 2) + Math.pow(pig.velocity.y, 2)
-          );
+            // Calculate collision speed
+            const speed = Math.sqrt(
+              Math.pow(pig.velocity.x, 2) + Math.pow(pig.velocity.y, 2)
+            );
 
-          // Calculate impact force using relative velocity
-          const relativeVelocity = Vector.sub(pig.velocity, other.velocity);
-          const impactForce = Vector.magnitude(relativeVelocity);
+            // Calculate impact force using relative velocity
+            const relativeVelocity = Vector.sub(pig.velocity, other.velocity);
+            const impactForce = Vector.magnitude(relativeVelocity);
 
-          // Calculate vertical velocity (for fall damage)
-          const verticalSpeed = Math.abs(pig.velocity.y);
+            // Calculate vertical velocity (for fall damage)
+            const verticalSpeed = Math.abs(pig.velocity.y);
 
-          // Calculate angular velocity (for spinning damage)
-          const angularSpeed = Math.abs(pig.angularVelocity);
+            // Calculate angular velocity (for spinning damage)
+            const angularSpeed = Math.abs(pig.angularVelocity);
 
-          // Log values for debugging
+            // Log values for debugging
 
-          // Pig dies if:
-          // 1. Hit by bird directly
-          // 2. Falling too fast (vertical speed > 8)
-          // 3. Hit by something moving fast (impactForce > 8)
-          // 4. Spinning too fast (angularSpeed > 2)
-          console.log({
-            speed,
-            impactForce,
-            verticalSpeed,
-            angularSpeed,
-            crushDepth: pair.collision?.depth,
-            isBird: other.collisionFilter.group === -1,
-          });
+            // Pig dies if:
+            // 1. Hit by bird directly
+            // 2. Falling too fast (vertical speed > 8)
+            // 3. Hit by something moving fast (impactForce > 8)
+            // 4. Spinning too fast (angularSpeed > 2)
+            console.log({
+              speed,
+              impactForce,
+              verticalSpeed,
+              angularSpeed,
+              crushDepth: pair.collision?.depth,
+              isBird: other.collisionFilter.group === -1,
+            });
 
-          if (
-            pigsCanBeDestroyed.current &&
-            (other.collisionFilter.group === -1 ||
-              verticalSpeed > 4 ||
-              (impactForce > 8 && speed > 5) ||
-              angularSpeed > 2 ||
-              (pair.collision && pair.collision.depth > 1))
-          ) {
-            Composite.remove(world, pig);
-            pigRefs.current = pigRefs.current.filter((p) => p.id !== pig.id);
-            setPigCount((prev: number) => prev - 1);
+            if (
+              pigsCanBeDestroyed.current &&
+              (other.collisionFilter.group === -1 ||
+                verticalSpeed > 4 ||
+                (impactForce > 8 && speed > 5) ||
+                angularSpeed > 2 ||
+                (pair.collision && pair.collision.depth > 1))
+            ) {
+              Composite.remove(world, pig);
+              pigRefs.current = pigRefs.current.filter((p) => p.id !== pig.id);
+              setPigCount((prev: number) => prev - 1);
+            }
           }
         }
       });
@@ -290,5 +326,31 @@ export function Tower({
     };
   }, [world, engine, level, angryModeActivated]);
 
-  return null;
+  return (
+    <>
+      {speechBubbleState.type === "show" && (
+        <SpeechBubble
+          text={speechBubbleState.text}
+          x={finalPigPosition.x}
+          y={finalPigPosition.y}
+        />
+      )}
+    </>
+  );
+}
+
+function getSpeechBubbleText(): string {
+  const texts = [
+    "Hahaha!",
+    "That doesn't hurt me!",
+    "Is that all you got?",
+    "Pathetic throw!",
+    "You'll never win!",
+    "I'm too powerful!",
+    "Nice try, noodle arms!",
+    "Can't touch this!",
+    "Better luck next time!",
+  ];
+
+  return texts[Math.floor(Math.random() * texts.length)];
 }
